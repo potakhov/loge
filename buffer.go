@@ -3,38 +3,30 @@ package logserv
 import (
 	"os"
 	"path/filepath"
-	"time"
+	"sync"
 )
 
 type buffer struct {
 	logger          *logger
+	operational     bool
 	currentFilename string
 	file            *os.File
-}
-
-type bufferElement struct {
-	timestamp  time.Time
-	timestring []byte
-	message    []byte
-}
-
-func newBufferElement(t time.Time, buf []byte, msg []byte) *bufferElement {
-	b := &bufferElement{
-		timestamp: t,
-	}
-
-	b.timestring = make([]byte, len(buf))
-	copy(b.timestring, buf)
-	b.message = make([]byte, len(msg))
-	copy(b.message, msg)
-
-	return b
+	stop            chan struct{}
+	wg              sync.WaitGroup
 }
 
 func newBuffer(logger *logger) *buffer {
-	return &buffer{
+	b := &buffer{
 		logger: logger,
 	}
+
+	if (b.logger.configuration.Mode & OutputFile) != 0 {
+		b.operational = true
+		b.stop = make(chan struct{})
+		go b.loop()
+	}
+
+	return b
 }
 
 func (b *buffer) createFile() {
@@ -51,10 +43,25 @@ func (b *buffer) createFile() {
 	}
 }
 
-func (b *buffer) write(el *bufferElement) {
+func (b *buffer) loop() {
+	b.wg.Add(1)
+	defer b.wg.Done()
+
+	for {
+		select {
+		case <-b.stop:
+			return
+		}
+	}
+}
+
+func (b *buffer) write(el *BufferElement) {
 
 }
 
 func (b *buffer) shutdown() {
-
+	if b.operational {
+		close(b.stop)
+		b.wg.Wait()
+	}
 }

@@ -83,7 +83,7 @@ func (l *logger) Write(d []byte) (int, error) {
 
 	if (l.configuration.Mode & OutputFile) != 0 {
 		l.buffer.write(
-			newBufferElement(t, l.buf, d),
+			NewBufferElement(t, l.buf, d),
 		)
 	}
 

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const dateTimeStringLength = 27
+
 func getLogName() string {
 	t := time.Now()
 	ret := fmt.Sprintf("%d%02d%02d.log", t.Year(), t.Month(), t.Day())

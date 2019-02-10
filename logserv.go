@@ -28,17 +28,17 @@ type Configuration struct {
 var std *logger
 
 type logger struct {
-	outputMode  int
-	writingFile bool
-	filename    string
-	file        *os.File
-	buf         []byte
+	configuration   Configuration
+	writingFile     bool
+	currentFilename string
+	file            *os.File
+	buf             []byte
 }
 
 // Init initializes the library and returns the shutdown handler to defer
 func Init(c Configuration) func() {
 	l := &logger{
-		outputMode: c.Mode,
+		configuration: c,
 	}
 
 	flag := 0
@@ -49,16 +49,7 @@ func Init(c Configuration) func() {
 	if (c.Mode & OutputFile) != 0 {
 		if fileInfo, err := os.Stat(c.Path); !os.IsNotExist(err) {
 			if fileInfo.IsDir() {
-				if (c.Mode & OutputFileRotate) != 0 {
-					l.filename = filepath.Join(c.Path, l.getLogName())
-				} else {
-					l.filename = filepath.Join(c.Path, c.Filename)
-				}
-
-				l.file, err = os.OpenFile(l.filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-				if err == nil {
-					l.writingFile = true
-				}
+				l.writingFile = true
 			}
 		}
 	}
@@ -78,20 +69,20 @@ func (l *logger) shutdown() {
 func (l *logger) Write(d []byte) (int, error) {
 	var t time.Time
 
-	if l.writingFile || ((l.outputMode & OutputConsole) != 0) {
+	if l.writingFile || ((l.configuration.Mode & OutputConsole) != 0) {
 		t = time.Now()
 		l.dumpTimeToBuffer(t)
 	}
 
-	if (l.outputMode & OutputConsole) != 0 {
+	if (l.configuration.Mode & OutputConsole) != 0 {
 		os.Stderr.Write(l.buf)
 		os.Stderr.Write(d)
 	}
 
-	if l.writingFile {
+	/*if l.writingFile {
 		l.file.Write(l.buf)
 		l.file.Write(d)
-	}
+	}*/
 
 	return len(d), nil
 }
@@ -135,4 +126,18 @@ func (l *logger) dumpTimeToBuffer(t time.Time) {
 	l.buf = append(l.buf, '.')
 	itoa(&l.buf, t.Nanosecond()/1e3, 6)
 	l.buf = append(l.buf, ' ')
+}
+
+func (l *logger) createFile() {
+	if (l.configuration.Mode & OutputFileRotate) != 0 {
+		l.currentFilename = filepath.Join(l.configuration.Path, l.getLogName())
+	} else {
+		l.currentFilename = filepath.Join(l.configuration.Path, l.configuration.Filename)
+	}
+
+	var err error
+	l.file, err = os.OpenFile(l.currentFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		l.file = nil
+	}
 }

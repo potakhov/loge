@@ -1,6 +1,7 @@
 package logserv
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -56,7 +57,8 @@ func (b *buffer) loop() {
 }
 
 func (b *buffer) write(el *BufferElement) {
-
+	m, _ := el.Marshal()
+	fmt.Printf("%s", string(m))
 }
 
 func (b *buffer) shutdown() {

@@ -15,10 +15,10 @@ type BufferElement struct {
 // NewBufferElement creates a new log entry
 func NewBufferElement(t time.Time, buf []byte, msg []byte) *BufferElement {
 	b := &BufferElement{
-		Timestamp: t,
-		Message:   string(msg),
+		Timestamp: t.UTC(),                  // time in UTC for the buffer
+		Message:   string(msg[:len(msg)-1]), // it is required because log.Output always adds a new line
 	}
-	copy(b.Timestring[:], buf)
+	copy(b.Timestring[:], buf) // timestamp in local machine time for file output
 
 	return b
 }

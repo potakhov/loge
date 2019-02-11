@@ -1,4 +1,4 @@
-package logserv
+package loge
 
 import (
 	"encoding/json"

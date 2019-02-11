@@ -1,31 +1,43 @@
-package logserv
+package loge
 
 import (
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/potakhov/cache"
 )
 
 type buffer struct {
-	logger          *logger
-	operational     bool
-	currentFilename string
-	file            *os.File
-	stop            chan struct{}
-	wg              sync.WaitGroup
+	logger            *logger
+	operational       bool
+	currentFilename   string
+	file              *os.File
+	stop              chan struct{}
+	wg                sync.WaitGroup
+	nextTransactionID uint64
 
 	currentTransaction     []*BufferElement
 	currentTransactionSize int
-	currentTransactionLock sync.RWMutex
+	currentTransactionLock sync.Mutex
 
 	transactionFlush chan bool
+
+	backlog     *cache.Line
+	backlogLock sync.RWMutex
+}
+
+type transaction struct {
+	id    uint64
+	items []*BufferElement
 }
 
 func newBuffer(logger *logger) *buffer {
 	b := &buffer{
-		logger:           logger,
-		transactionFlush: make(chan bool, 1),
+		nextTransactionID: 1,
+		logger:            logger,
+		transactionFlush:  make(chan bool, 1),
 	}
 
 	if (b.logger.configuration.Mode & OutputFile) != 0 {
@@ -98,5 +110,25 @@ func (b *buffer) shutdown() {
 }
 
 func (b *buffer) flush() {
-	//
+	b.currentTransactionLock.Lock()
+	if len(b.currentTransaction) == 0 {
+		b.currentTransactionLock.Unlock()
+		return
+	}
+
+	tr := b.currentTransaction
+	b.currentTransaction = make([]*BufferElement, 0)
+	b.currentTransactionSize = 0
+	b.currentTransactionLock.Unlock()
+
+	trans := &transaction{
+		id:    b.nextTransactionID,
+		items: tr,
+	}
+
+	b.backlogLock.Lock()
+	b.backlog.Store(b.nextTransactionID, trans)
+	b.backlogLock.Unlock()
+
+	// TODO notify transports about the new transaction trans
 }

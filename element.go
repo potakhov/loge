@@ -27,3 +27,8 @@ func NewBufferElement(t time.Time, buf []byte, msg []byte) *BufferElement {
 func (be *BufferElement) Marshal() ([]byte, error) {
 	return json.Marshal(be)
 }
+
+// Size returns the record size in bytes
+func (be *BufferElement) Size() int {
+	return dateTimeStringLength + len(be.Message)
+}

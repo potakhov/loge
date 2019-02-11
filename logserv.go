@@ -8,22 +8,28 @@ import (
 
 // Various log output modes
 const (
-	OutputConsole     uint32 = 1  // OutputConsole outputs to the stderr
-	OutputFile        uint32 = 2  // OutputFile adds a file output
-	OutputFileRotate  uint32 = 4  // OutputFileRotate adds an automatic file rotation based on current date
-	OutputIncludeFile uint32 = 8  // Include file and line into the output
-	OutputServer      uint32 = 16 // OutputServer starts the server output
+	OutputConsole     uint32 = 1 // OutputConsole outputs to the stderr
+	OutputFile        uint32 = 2 // OutputFile adds a file output
+	OutputFileRotate  uint32 = 4 // OutputFileRotate adds an automatic file rotation based on current date
+	OutputIncludeLine uint32 = 8 // Include file and line into the output
 )
 
 // Configuration defines the logger startup configuration
 type Configuration struct {
-	Mode     uint32   // work mode
-	Path     string   // output path for the file mode
-	Filename string   // log file name (ignored if rotation is enabled)
-	URLs     []string // server addresses
+	Mode               uint32        // work mode
+	Path               string        // output path for the file mode
+	Filename           string        // log file name (ignored if rotation is enabled)
+	URLs               []string      // server addresses
+	TransactionSize    int           // transaction size limit in bytes (default 10KB)
+	TransactionTimeout time.Duration // transaction length limit (default 3 seconds)
 }
 
 var std *logger
+
+const (
+	defaultTransactionSize   = 10 * 1024
+	defaultTransactionLength = time.Second * 3
+)
 
 type logger struct {
 	configuration Configuration
@@ -38,7 +44,7 @@ func Init(c Configuration) func() {
 	}
 
 	flag := 0
-	if (c.Mode & OutputIncludeFile) != 0 {
+	if (c.Mode & OutputIncludeLine) != 0 {
 		flag |= log.Lshortfile
 	}
 
@@ -54,6 +60,14 @@ func Init(c Configuration) func() {
 		if !validPath {
 			l.configuration.Mode = l.configuration.Mode & (^OutputFile)
 		}
+	}
+
+	if l.configuration.TransactionSize == 0 {
+		l.configuration.TransactionSize = defaultTransactionSize
+	}
+
+	if l.configuration.TransactionTimeout == 0 {
+		l.configuration.TransactionTimeout = defaultTransactionLength
 	}
 
 	l.buffer = newBuffer(l)

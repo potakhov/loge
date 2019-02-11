@@ -1,10 +1,10 @@
 package logserv
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type buffer struct {
@@ -14,11 +14,18 @@ type buffer struct {
 	file            *os.File
 	stop            chan struct{}
 	wg              sync.WaitGroup
+
+	currentTransaction     []*BufferElement
+	currentTransactionSize int
+	currentTransactionLock sync.RWMutex
+
+	transactionFlush chan bool
 }
 
 func newBuffer(logger *logger) *buffer {
 	b := &buffer{
-		logger: logger,
+		logger:           logger,
+		transactionFlush: make(chan bool, 1),
 	}
 
 	if (b.logger.configuration.Mode & OutputFile) != 0 {
@@ -48,17 +55,39 @@ func (b *buffer) loop() {
 	b.wg.Add(1)
 	defer b.wg.Done()
 
+	tm := time.NewTimer(b.logger.configuration.TransactionTimeout)
 	for {
 		select {
 		case <-b.stop:
 			return
+		case <-b.transactionFlush:
+			if !tm.Stop() {
+				<-tm.C
+			}
+			b.flush()
+			tm.Reset(b.logger.configuration.TransactionTimeout)
+		case <-tm.C:
+			b.flush()
+			tm.Reset(b.logger.configuration.TransactionTimeout)
 		}
 	}
 }
 
 func (b *buffer) write(el *BufferElement) {
-	m, _ := el.Marshal()
-	fmt.Printf("%s", string(m))
+	var size int
+
+	b.currentTransactionLock.Lock()
+	b.currentTransaction = append(b.currentTransaction, el)
+	b.currentTransactionSize += el.Size()
+	size = b.currentTransactionSize
+	b.currentTransactionLock.Unlock()
+
+	if size >= b.logger.configuration.TransactionSize {
+		select {
+		case b.transactionFlush <- true:
+		default:
+		}
+	}
 }
 
 func (b *buffer) shutdown() {
@@ -66,4 +95,8 @@ func (b *buffer) shutdown() {
 		close(b.stop)
 		b.wg.Wait()
 	}
+}
+
+func (b *buffer) flush() {
+	//
 }

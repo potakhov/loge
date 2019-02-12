@@ -10,15 +10,21 @@ type BufferElement struct {
 	Timestamp  time.Time                  `json:"time"`
 	Timestring [dateTimeStringLength]byte `json:"-"`
 	Message    string                     `json:"msg"`
+	Level      string                     `json:"level,omitempty"`
 }
 
 // NewBufferElement creates a new log entry
 func NewBufferElement(t time.Time, buf []byte, msg []byte) *BufferElement {
 	b := &BufferElement{
-		Timestamp: t.UTC(),                  // time in UTC for the buffer
-		Message:   string(msg[:len(msg)-1]), // it is required because log.Output always adds a new line
+		Timestamp: t.UTC(), // time in UTC for the buffer
 	}
 	copy(b.Timestring[:], buf) // timestamp in local machine time for file output
+
+	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
+		b.Message = string(msg[:len(msg)-1]) // it is required because log.Output always adds a new line
+	} else {
+		b.Message = string(msg)
+	}
 
 	return b
 }

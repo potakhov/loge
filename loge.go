@@ -1,9 +1,11 @@
 package loge
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -16,19 +18,33 @@ const (
 	OutputConsoleInJSONFormat uint32 = 16 // Switch console output to JSON serialized format
 )
 
+// Various selectable log levels
+const (
+	LogLevelInfo  uint32 = 1
+	LogLevelDebug uint32 = 2
+)
+
 // Configuration defines the logger startup configuration
 type Configuration struct {
 	Mode                     uint32        // work mode
 	Path                     string        // output path for the file mode
 	Filename                 string        // log file name (ignored if rotation is enabled)
-	URLs                     []string      // server addresses
 	TransactionSize          int           // transaction size limit in bytes (default 10KB)
 	TransactionTimeout       time.Duration // transaction length limit (default 3 seconds)
 	ConsoleOutput            io.Writer     // output writer for console (default os.Stderr)
 	BacklogExpirationTimeout time.Duration // transaction backlog expiration timeout (default is time.Hour)
+	LogLevels                uint32        // selectable log levels
 }
 
 var std *logger
+
+func init() {
+	std = newLogger(
+		Configuration{
+			Mode:          OutputConsole,
+			ConsoleOutput: os.Stderr,
+		})
+}
 
 const (
 	defaultTransactionSize   = 10 * 1024
@@ -37,13 +53,21 @@ const (
 )
 
 type logger struct {
-	configuration Configuration
-	buf           []byte
-	buffer        *buffer
+	configuration        Configuration
+	writeTimestampBuffer []byte
+	buffer               *buffer
+
+	customTimestampBuffer []byte
+	customTimestampLock   sync.Mutex
 }
 
 // Init initializes the library and returns the shutdown handler to defer
 func Init(c Configuration) func() {
+	std = newLogger(c)
+	return std.shutdown
+}
+
+func newLogger(c Configuration) *logger {
 	l := &logger{
 		configuration: c,
 	}
@@ -83,51 +107,91 @@ func Init(c Configuration) func() {
 		l.configuration.BacklogExpirationTimeout = defaultBacklogTimeout
 	}
 
-	l.buffer = newBuffer(l)
+	if (l.configuration.Mode & OutputFile) != 0 {
+		l.buffer = newBuffer(l)
+	}
 
 	log.SetFlags(flag)
 	log.SetOutput(l)
 
-	return l.shutdown
+	return l
 }
 
 func (l *logger) shutdown() {
-	l.buffer.shutdown()
+	if l.buffer != nil {
+		l.buffer.shutdown()
+	}
 }
 
 func (l *logger) Write(d []byte) (int, error) {
-	var t time.Time
-	var be *BufferElement
-
 	if ((l.configuration.Mode & OutputFile) != 0) || ((l.configuration.Mode & OutputConsole) != 0) {
-		t = time.Now()
-		dumpTimeToBuffer(&l.buf, t)
+		t := time.Now()
+		dumpTimeToBuffer(&l.writeTimestampBuffer, t) // don't have to lock this buf here because Write events are serialized
+		l.write(
+			NewBufferElement(t, l.writeTimestampBuffer, d),
+		)
 	}
 
+	return len(d), nil
+}
+
+func (l *logger) write(be *BufferElement) {
 	if (l.configuration.Mode & OutputConsole) != 0 {
 		if (l.configuration.Mode & OutputConsoleInJSONFormat) != 0 {
-			be = NewBufferElement(t, l.buf, d)
-
 			json, err := be.Marshal()
 			if err == nil {
 				l.configuration.ConsoleOutput.Write(json)
 				l.configuration.ConsoleOutput.Write([]byte("\n"))
 			}
 		} else {
-			l.configuration.ConsoleOutput.Write(l.buf)
-			l.configuration.ConsoleOutput.Write(d)
+			l.configuration.ConsoleOutput.Write(be.Timestring[:])
+			l.configuration.ConsoleOutput.Write([]byte(be.Message))
+			l.configuration.ConsoleOutput.Write([]byte("\n"))
 		}
 	}
 
 	if (l.configuration.Mode & OutputFile) != 0 {
-		if be == nil {
-			be = NewBufferElement(t, l.buf, d)
-		}
-
 		l.buffer.write(
 			be,
 		)
 	}
+}
 
-	return len(d), nil
+func (l *logger) writeLevel(level uint32, message string) {
+	if ((l.configuration.Mode & OutputFile) != 0) || ((l.configuration.Mode & OutputConsole) != 0) {
+		if (l.configuration.LogLevels & level) != 0 {
+			l.customTimestampLock.Lock()
+			defer l.customTimestampLock.Unlock()
+			t := time.Now()
+			dumpTimeToBuffer(&l.customTimestampBuffer, t)
+			be := NewBufferElement(t, l.writeTimestampBuffer, []byte(message))
+			switch level {
+			case LogLevelInfo:
+				be.Level = "info"
+			case LogLevelDebug:
+				be.Level = "debug"
+			}
+			l.write(be)
+		}
+	}
+}
+
+// Infof creates creates a new "info" log entry
+func Infof(format string, v ...interface{}) {
+	std.writeLevel(LogLevelInfo, fmt.Sprintf(format, v...))
+}
+
+// Infoln creates creates a new "info" log entry
+func Infoln(v ...interface{}) {
+	std.writeLevel(LogLevelInfo, fmt.Sprintln(v...))
+}
+
+// Debugf creates creates a new "debug" log entry
+func Debugf(format string, v ...interface{}) {
+	std.writeLevel(LogLevelDebug, fmt.Sprintf(format, v...))
+}
+
+// Debugln creates creates a new "debug" log entry
+func Debugln(v ...interface{}) {
+	std.writeLevel(LogLevelDebug, fmt.Sprintln(v...))
 }

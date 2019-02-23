@@ -1,19 +1,19 @@
 package loge
 
 import (
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/potakhov/cache"
 )
 
+type transport interface {
+	newTransaction(uint64)
+	stop()
+}
+
 type buffer struct {
 	logger            *logger
-	operational       bool
-	currentFilename   string
-	file              *os.File
 	stop              chan struct{}
 	wg                sync.WaitGroup
 	nextTransactionID uint64
@@ -25,7 +25,9 @@ type buffer struct {
 	transactionFlush chan bool
 
 	backlog     *cache.Line
-	backlogLock sync.RWMutex
+	backlogLock sync.Mutex
+
+	outputs []transport
 }
 
 type transaction struct {
@@ -38,29 +40,16 @@ func newBuffer(logger *logger) *buffer {
 		nextTransactionID: 1,
 		logger:            logger,
 		transactionFlush:  make(chan bool, 1),
+		stop:              make(chan struct{}),
+		backlog:           cache.CreateLine(logger.configuration.BacklogExpirationTimeout),
 	}
 
-	if (b.logger.configuration.Mode & OutputFile) != 0 {
-		b.operational = true
-		b.stop = make(chan struct{})
-		go b.loop()
-	}
+	b.outputs = make([]transport, 1)
+	b.outputs[0] = newFileTransport(logger)
+
+	go b.loop()
 
 	return b
-}
-
-func (b *buffer) createFile() {
-	if (b.logger.configuration.Mode & OutputFileRotate) != 0 {
-		b.currentFilename = filepath.Join(b.logger.configuration.Path, getLogName())
-	} else {
-		b.currentFilename = filepath.Join(b.logger.configuration.Path, b.logger.configuration.Filename)
-	}
-
-	var err error
-	b.file, err = os.OpenFile(b.currentFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		b.file = nil
-	}
 }
 
 func (b *buffer) loop() {
@@ -103,9 +92,11 @@ func (b *buffer) write(el *BufferElement) {
 }
 
 func (b *buffer) shutdown() {
-	if b.operational {
-		close(b.stop)
-		b.wg.Wait()
+	close(b.stop)
+	b.wg.Wait()
+
+	for _, t := range b.outputs {
+		t.stop()
 	}
 }
 
@@ -130,5 +121,9 @@ func (b *buffer) flush() {
 	b.backlog.Store(b.nextTransactionID, trans)
 	b.backlogLock.Unlock()
 
-	// TODO notify transports about the new transaction trans
+	for _, t := range b.outputs {
+		t.newTransaction(b.nextTransactionID)
+	}
+
+	b.nextTransactionID++
 }

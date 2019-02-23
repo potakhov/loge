@@ -5,7 +5,7 @@ an ability to write log files (with optional rotation) and serializing the outpu
 
 ## Usage
 
-`loge.Init()` function returns the callable object that finalizes the log output. In order to use it simply add following
+`loge.Init()` function returns callable object that finalizes the log output. In order to use it simply add following
 to the beginning of your `main()` function:
 
 ```go
@@ -30,7 +30,7 @@ Filename|string|Log file name (ignored if rotation is enabled)
 TransactionSize|int|Transaction size limit in bytes (default `10KB`)
 TransactionTimeout|time.Duration|Transaction flush timeout (default `3 seconds`)
 ConsoleOutput|io.Writer|Output writer for console output (default os.Stderr, ignored if console output is disabled)
-BacklogExpirationTimeout|time.Duration|Transaction backlog expiration timeout (default is `time.Hour`)
+BacklogExpirationTimeout|time.Duration|Transaction backlog expiration timeout (default is `15 minutes`)
 LogLevels|uint32|Enabled log levels (defaults to `0` meaning that only default `log.Print()` messages go to the output)
 
 ## Work mode options

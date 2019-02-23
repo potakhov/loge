@@ -49,7 +49,7 @@ func init() {
 const (
 	defaultTransactionSize   = 10 * 1024
 	defaultTransactionLength = time.Second * 3
-	defaultBacklogTimeout    = time.Hour
+	defaultBacklogTimeout    = time.Minute * 15
 )
 
 type logger struct {

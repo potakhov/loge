@@ -27,12 +27,14 @@ type buffer struct {
 	backlog     *cache.Line
 	backlogLock sync.Mutex
 
-	outputs []transport
+	outputs  []transport
+	refcount int
 }
 
 type transaction struct {
-	id    uint64
-	items []*BufferElement
+	id         uint64
+	references int
+	items      []*BufferElement
 }
 
 func newBuffer(logger *logger) *buffer {
@@ -45,7 +47,8 @@ func newBuffer(logger *logger) *buffer {
 	}
 
 	b.outputs = make([]transport, 1)
-	b.outputs[0] = newFileTransport(logger)
+	b.outputs[0] = newFileTransport(b)
+	b.refcount = 1
 
 	go b.loop()
 
@@ -60,6 +63,7 @@ func (b *buffer) loop() {
 	for {
 		select {
 		case <-b.stop:
+			b.flush()
 			return
 		case <-b.transactionFlush:
 			if !tm.Stop() {
@@ -113,8 +117,9 @@ func (b *buffer) flush() {
 	b.currentTransactionLock.Unlock()
 
 	trans := &transaction{
-		id:    b.nextTransactionID,
-		items: tr,
+		id:         b.nextTransactionID,
+		references: b.refcount,
+		items:      tr,
 	}
 
 	b.backlogLock.Lock()
@@ -126,4 +131,18 @@ func (b *buffer) flush() {
 	}
 
 	b.nextTransactionID++
+}
+
+func (b *buffer) free(id uint64) {
+	b.backlogLock.Lock()
+	defer b.backlogLock.Unlock()
+
+	t, err := b.backlog.Get(id)
+	if err == nil {
+		trans := t.(*transaction)
+		trans.references--
+		if trans.references == 0 {
+			b.backlog.Delete(id)
+		}
+	}
 }

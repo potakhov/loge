@@ -1,6 +1,7 @@
 package loge
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ type fileOutputTransport struct {
 	buffer          *buffer
 	currentFilename string
 	file            *os.File
+	writer          *bufio.Writer
 	done            chan struct{}
 	wg              sync.WaitGroup
 
@@ -75,6 +77,7 @@ func (ft *fileOutputTransport) flushAll() {
 			if ft.currentFilename != getLogName(ft.buffer.logger.configuration.Path) {
 				ft.file.Close()
 				ft.file = nil
+				ft.writer = nil
 			}
 		}
 	}
@@ -105,17 +108,19 @@ func (ft *fileOutputTransport) flushAll() {
 				if (ft.buffer.logger.configuration.Mode & OutputConsoleInJSONFormat) != 0 {
 					json, err := be.Marshal()
 					if err == nil {
-						ft.file.Write(json)
-						ft.file.Write([]byte("\n"))
+						ft.writer.Write(json)
+						ft.writer.Write([]byte("\n"))
 					}
 				} else {
-					ft.file.Write(be.Timestring[:])
-					ft.file.Write([]byte(be.Message))
-					ft.file.Write([]byte("\n"))
+					ft.writer.Write(be.Timestring[:])
+					ft.writer.Write([]byte(be.Message))
+					ft.writer.Write([]byte("\n"))
 				}
 			}
 		}
 	}
+
+	ft.writer.Flush()
 }
 
 func (ft *fileOutputTransport) createFile() {
@@ -129,5 +134,8 @@ func (ft *fileOutputTransport) createFile() {
 	ft.file, err = os.OpenFile(ft.currentFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		ft.file = nil
+		return
 	}
+
+	ft.writer = bufio.NewWriter(ft.file)
 }

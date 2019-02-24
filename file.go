@@ -1,6 +1,7 @@
 package loge
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -12,6 +13,8 @@ type fileOutputTransport struct {
 	file            *os.File
 	done            chan struct{}
 	wg              sync.WaitGroup
+
+	terminated bool
 
 	signal chan struct{}
 
@@ -63,12 +66,61 @@ func (ft *fileOutputTransport) stop() {
 }
 
 func (ft *fileOutputTransport) flushAll() {
+	if ft.terminated {
+		return
+	}
 
+	if ft.file != nil {
+		if (ft.buffer.logger.configuration.Mode & OutputFileRotate) != 0 {
+			if ft.currentFilename != getLogName(ft.buffer.logger.configuration.Path) {
+				ft.file.Close()
+				ft.file = nil
+			}
+		}
+	}
+
+	if ft.file == nil {
+		ft.createFile()
+		if ft.file == nil {
+			ft.terminated = true
+			log.Println("Unable to create the output file.  File log output will be disabled.")
+			return
+		}
+	}
+
+	ft.transLocker.Lock()
+	if len(ft.trans) == 0 {
+		ft.transLocker.Unlock()
+		return
+	}
+
+	ids := ft.trans
+	ft.trans = make([]uint64, 0)
+	ft.transLocker.Unlock()
+
+	for _, id := range ids {
+		tr, ok := ft.buffer.get(id, true)
+		if ok {
+			for _, be := range tr.items {
+				if (ft.buffer.logger.configuration.Mode & OutputConsoleInJSONFormat) != 0 {
+					json, err := be.Marshal()
+					if err == nil {
+						ft.file.Write(json)
+						ft.file.Write([]byte("\n"))
+					}
+				} else {
+					ft.file.Write(be.Timestring[:])
+					ft.file.Write([]byte(be.Message))
+					ft.file.Write([]byte("\n"))
+				}
+			}
+		}
+	}
 }
 
 func (ft *fileOutputTransport) createFile() {
 	if (ft.buffer.logger.configuration.Mode & OutputFileRotate) != 0 {
-		ft.currentFilename = filepath.Join(ft.buffer.logger.configuration.Path, getLogName())
+		ft.currentFilename = getLogName(ft.buffer.logger.configuration.Path)
 	} else {
 		ft.currentFilename = filepath.Join(ft.buffer.logger.configuration.Path, ft.buffer.logger.configuration.Filename)
 	}

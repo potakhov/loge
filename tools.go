@@ -2,15 +2,16 @@ package loge
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 )
 
 const dateTimeStringLength = 27
 
-func getLogName() string {
+func getLogName(path string) string {
 	t := time.Now()
 	ret := fmt.Sprintf("%d%02d%02d.log", t.Year(), t.Month(), t.Day())
-	return ret
+	return filepath.Join(path, ret)
 }
 
 func itoa(buf *[]byte, i int, wid int) {

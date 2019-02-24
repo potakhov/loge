@@ -133,6 +133,27 @@ func (b *buffer) flush() {
 	b.nextTransactionID++
 }
 
+func (b *buffer) get(id uint64, autofree bool) (*transaction, bool) {
+	b.backlogLock.Lock()
+	defer b.backlogLock.Unlock()
+
+	t, err := b.backlog.Get(id)
+	if err == nil {
+		trans := t.(*transaction)
+
+		if autofree {
+			trans.references--
+			if trans.references == 0 {
+				b.backlog.Delete(id)
+			}
+		}
+
+		return trans, true
+	}
+
+	return nil, false
+}
+
 func (b *buffer) free(id uint64) {
 	b.backlogLock.Lock()
 	defer b.backlogLock.Unlock()

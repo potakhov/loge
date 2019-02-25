@@ -2,7 +2,6 @@ package loge
 
 import (
 	"bufio"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -86,7 +85,7 @@ func (ft *fileOutputTransport) flushAll() {
 		ft.createFile()
 		if ft.file == nil {
 			ft.terminated = true
-			log.Println("Unable to create the output file.  File log output will be disabled.")
+			os.Stderr.Write([]byte("Unable to create the output file.  Log file output is disabled.\n"))
 			return
 		}
 	}

@@ -88,6 +88,7 @@ func newLogger(c Configuration) *logger {
 
 		if !validPath {
 			l.configuration.Mode = l.configuration.Mode & (^OutputFile)
+			os.Stderr.Write([]byte("Log path is invalid.  Log file output is disabled.\n"))
 		}
 	}
 

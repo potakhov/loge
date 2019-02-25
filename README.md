@@ -1,7 +1,9 @@
 # LOGE - an extension for the standard log library in Go
 
 This package is meant to be used as an addition to the standard log package extending its' functionality adding
-an ability to write log files (with optional rotation) and serializing the output into JSON format.
+an ability to write log files (with optional rotation) and serializing the output into JSON format.  File output
+transport is transactional and abstracted to leave a possibility of adding optional networking transports in the
+future.
 
 ## Usage
 

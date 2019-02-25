@@ -24,16 +24,20 @@ const (
 	LogLevelDebug uint32 = 2
 )
 
+// TransportCreator is an interface to create new optional transports when the log is initialized
+type TransportCreator func(TransactionList) []Transport
+
 // Configuration defines the logger startup configuration
 type Configuration struct {
-	Mode                     uint32        // work mode
-	Path                     string        // output path for the file mode
-	Filename                 string        // log file name (ignored if rotation is enabled)
-	TransactionSize          int           // transaction size limit in bytes (default 10KB)
-	TransactionTimeout       time.Duration // transaction length limit (default 3 seconds)
-	ConsoleOutput            io.Writer     // output writer for console (default os.Stderr)
-	BacklogExpirationTimeout time.Duration // transaction backlog expiration timeout (default is time.Hour)
-	LogLevels                uint32        // selectable log levels
+	Mode                     uint32           // work mode
+	Path                     string           // output path for the file mode
+	Filename                 string           // log file name (ignored if rotation is enabled)
+	TransactionSize          int              // transaction size limit in bytes (default 10KB)
+	TransactionTimeout       time.Duration    // transaction length limit (default 3 seconds)
+	ConsoleOutput            io.Writer        // output writer for console (default os.Stderr)
+	BacklogExpirationTimeout time.Duration    // transaction backlog expiration timeout (default is time.Hour)
+	LogLevels                uint32           // selectable log levels
+	Transports               TransportCreator // Optional transports creator
 }
 
 var std *logger
@@ -108,8 +112,26 @@ func newLogger(c Configuration) *logger {
 		l.configuration.BacklogExpirationTimeout = defaultBacklogTimeout
 	}
 
-	if (l.configuration.Mode & OutputFile) != 0 {
-		l.buffer = newBuffer(l)
+	if ((l.configuration.Mode & OutputFile) != 0) || (l.configuration.Transports != nil) {
+		buffer := newBuffer(l)
+
+		var outputs []Transport
+
+		if (l.configuration.Mode & OutputFile) != 0 {
+			outputs = make([]Transport, 1)
+			outputs[0] = newFileTransport(buffer, c.Path, c.Filename, (c.Mode&OutputFileRotate) != 0, (c.Mode&OutputConsoleInJSONFormat) != 0)
+		} else {
+			outputs = make([]Transport, 0)
+		}
+
+		if l.configuration.Transports != nil {
+			outputs = append(outputs, l.configuration.Transports(buffer)...)
+		}
+
+		if len(outputs) > 0 {
+			l.buffer = buffer
+			l.buffer.start(outputs)
+		}
 	}
 
 	log.SetFlags(flag)
@@ -125,7 +147,7 @@ func (l *logger) shutdown() {
 }
 
 func (l *logger) Write(d []byte) (int, error) {
-	if ((l.configuration.Mode & OutputFile) != 0) || ((l.configuration.Mode & OutputConsole) != 0) {
+	if (l.buffer != nil) || ((l.configuration.Mode & OutputConsole) != 0) {
 		t := time.Now()
 		dumpTimeToBuffer(&l.writeTimestampBuffer, t) // don't have to lock this buf here because Write events are serialized
 		l.write(
@@ -151,7 +173,7 @@ func (l *logger) write(be *BufferElement) {
 		}
 	}
 
-	if (l.configuration.Mode & OutputFile) != 0 {
+	if l.buffer != nil {
 		l.buffer.write(
 			be,
 		)
@@ -159,7 +181,7 @@ func (l *logger) write(be *BufferElement) {
 }
 
 func (l *logger) writeLevel(level uint32, message string) {
-	if ((l.configuration.Mode & OutputFile) != 0) || ((l.configuration.Mode & OutputConsole) != 0) {
+	if (l.buffer != nil) || ((l.configuration.Mode & OutputConsole) != 0) {
 		l.customTimestampLock.Lock()
 		defer l.customTimestampLock.Unlock()
 		t := time.Now()

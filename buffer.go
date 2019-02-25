@@ -7,9 +7,17 @@ import (
 	"github.com/potakhov/cache"
 )
 
-type transport interface {
-	newTransaction(uint64)
-	stop()
+// TransactionList defines a generalized interface to the transaction list
+// for various transports
+type TransactionList interface {
+	Get(id uint64, autofree bool) (*Transaction, bool)
+	Free(id uint64)
+}
+
+// Transport defines the output transport
+type Transport interface {
+	NewTransaction(uint64)
+	Stop()
 }
 
 type buffer struct {
@@ -28,32 +36,32 @@ type buffer struct {
 	backlog     *cache.Line
 	backlogLock sync.Mutex
 
-	outputs  []transport
+	outputs  []Transport
 	refcount int
 }
 
-type transaction struct {
-	id         uint64
+// Transaction is a set of records to commit to the output transport
+type Transaction struct {
+	ID         uint64
+	Items      []*BufferElement
 	references int
-	items      []*BufferElement
 }
 
 func newBuffer(logger *logger) *buffer {
-	b := &buffer{
+	return &buffer{
 		nextTransactionID: 1,
 		logger:            logger,
 		transactionFlush:  make(chan bool, 1),
 		stop:              make(chan struct{}),
 		backlog:           cache.CreateLine(logger.configuration.BacklogExpirationTimeout),
 	}
+}
 
-	b.outputs = make([]transport, 1)
-	b.outputs[0] = newFileTransport(b)
-	b.refcount = 1
+func (b *buffer) start(outputs []Transport) {
+	b.outputs = outputs
+	b.refcount = len(outputs)
 
 	go b.loop()
-
-	return b
 }
 
 func (b *buffer) loop() {
@@ -106,7 +114,7 @@ func (b *buffer) shutdown() {
 	b.wg.Wait()
 
 	for _, t := range b.outputs {
-		t.stop()
+		t.Stop()
 	}
 }
 
@@ -123,10 +131,10 @@ func (b *buffer) flush() {
 	b.currentTransactionSize = 0
 	b.currentTransactionLock.Unlock()
 
-	trans := &transaction{
-		id:         b.nextTransactionID,
+	trans := &Transaction{
+		ID:         b.nextTransactionID,
 		references: b.refcount,
-		items:      tr,
+		Items:      tr,
 	}
 
 	b.backlogLock.Lock()
@@ -134,19 +142,21 @@ func (b *buffer) flush() {
 	b.backlogLock.Unlock()
 
 	for _, t := range b.outputs {
-		t.newTransaction(b.nextTransactionID)
+		t.NewTransaction(b.nextTransactionID)
 	}
 
 	b.nextTransactionID++
 }
 
-func (b *buffer) get(id uint64, autofree bool) (*transaction, bool) {
+// Get returns the transaction by ID. It can optionally decrease the reference count if
+// caller does not need to wait for delivery confirmation
+func (b *buffer) Get(id uint64, autofree bool) (*Transaction, bool) {
 	b.backlogLock.Lock()
 	defer b.backlogLock.Unlock()
 
 	t, err := b.backlog.Get(id)
 	if err == nil {
-		trans := t.(*transaction)
+		trans := t.(*Transaction)
 
 		if autofree {
 			trans.references--
@@ -161,13 +171,14 @@ func (b *buffer) get(id uint64, autofree bool) (*transaction, bool) {
 	return nil, false
 }
 
-func (b *buffer) free(id uint64) {
+// Free decreases the reference count for the transaction after it has been used in the transport
+func (b *buffer) Free(id uint64) {
 	b.backlogLock.Lock()
 	defer b.backlogLock.Unlock()
 
 	t, err := b.backlog.Get(id)
 	if err == nil {
-		trans := t.(*transaction)
+		trans := t.(*Transaction)
 		trans.references--
 		if trans.references == 0 {
 			b.backlog.Delete(id)

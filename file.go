@@ -8,12 +8,17 @@ import (
 )
 
 type fileOutputTransport struct {
-	buffer          *buffer
+	buffer          TransactionList
 	currentFilename string
 	file            *os.File
 	writer          *bufio.Writer
 	done            chan struct{}
 	wg              sync.WaitGroup
+
+	path     string
+	filename string
+	rotation bool
+	json     bool
 
 	terminated bool
 
@@ -23,12 +28,16 @@ type fileOutputTransport struct {
 	transLocker sync.Mutex
 }
 
-func newFileTransport(buffer *buffer) *fileOutputTransport {
+func newFileTransport(buffer TransactionList, path string, filename string, rotation bool, json bool) *fileOutputTransport {
 	ft := &fileOutputTransport{
-		buffer: buffer,
-		done:   make(chan struct{}),
-		signal: make(chan struct{}, 1),
-		trans:  make([]uint64, 0),
+		buffer:   buffer,
+		done:     make(chan struct{}),
+		signal:   make(chan struct{}, 1),
+		trans:    make([]uint64, 0),
+		path:     path,
+		filename: filename,
+		rotation: rotation,
+		json:     json,
 	}
 
 	go ft.loop()
@@ -50,7 +59,7 @@ func (ft *fileOutputTransport) loop() {
 	}
 }
 
-func (ft *fileOutputTransport) newTransaction(id uint64) {
+func (ft *fileOutputTransport) NewTransaction(id uint64) {
 	ft.transLocker.Lock()
 	ft.trans = append(ft.trans, id)
 	ft.transLocker.Unlock()
@@ -61,7 +70,7 @@ func (ft *fileOutputTransport) newTransaction(id uint64) {
 	}
 }
 
-func (ft *fileOutputTransport) stop() {
+func (ft *fileOutputTransport) Stop() {
 	close(ft.done)
 	ft.wg.Wait()
 }
@@ -72,8 +81,8 @@ func (ft *fileOutputTransport) flushAll() {
 	}
 
 	if ft.file != nil {
-		if (ft.buffer.logger.configuration.Mode & OutputFileRotate) != 0 {
-			if ft.currentFilename != getLogName(ft.buffer.logger.configuration.Path) {
+		if ft.rotation {
+			if ft.currentFilename != getLogName(ft.path) {
 				ft.file.Close()
 				ft.file = nil
 				ft.writer = nil
@@ -101,10 +110,10 @@ func (ft *fileOutputTransport) flushAll() {
 	ft.transLocker.Unlock()
 
 	for _, id := range ids {
-		tr, ok := ft.buffer.get(id, true)
+		tr, ok := ft.buffer.Get(id, true)
 		if ok {
-			for _, be := range tr.items {
-				if (ft.buffer.logger.configuration.Mode & OutputConsoleInJSONFormat) != 0 {
+			for _, be := range tr.Items {
+				if ft.json {
 					json, err := be.Marshal()
 					if err == nil {
 						ft.writer.Write(json)
@@ -123,10 +132,10 @@ func (ft *fileOutputTransport) flushAll() {
 }
 
 func (ft *fileOutputTransport) createFile() {
-	if (ft.buffer.logger.configuration.Mode & OutputFileRotate) != 0 {
-		ft.currentFilename = getLogName(ft.buffer.logger.configuration.Path)
+	if ft.rotation {
+		ft.currentFilename = getLogName(ft.path)
 	} else {
-		ft.currentFilename = filepath.Join(ft.buffer.logger.configuration.Path, ft.buffer.logger.configuration.Filename)
+		ft.currentFilename = filepath.Join(ft.path, ft.filename)
 	}
 
 	var err error

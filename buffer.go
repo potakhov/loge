@@ -23,6 +23,7 @@ type buffer struct {
 	currentTransactionLock sync.Mutex
 
 	transactionFlush chan bool
+	flushSent        bool
 
 	backlog     *cache.Line
 	backlogLock sync.Mutex
@@ -79,15 +80,20 @@ func (b *buffer) loop() {
 }
 
 func (b *buffer) write(el *BufferElement) {
-	var size int
+	flush := false
 
 	b.currentTransactionLock.Lock()
 	b.currentTransaction = append(b.currentTransaction, el)
 	b.currentTransactionSize += el.Size()
-	size = b.currentTransactionSize
+	if !b.flushSent {
+		if b.currentTransactionSize >= b.logger.configuration.TransactionSize {
+			flush = true
+			b.flushSent = true
+		}
+	}
 	b.currentTransactionLock.Unlock()
 
-	if size >= b.logger.configuration.TransactionSize {
+	if flush {
 		select {
 		case b.transactionFlush <- true:
 		default:
@@ -106,6 +112,7 @@ func (b *buffer) shutdown() {
 
 func (b *buffer) flush() {
 	b.currentTransactionLock.Lock()
+	b.flushSent = false
 	if len(b.currentTransaction) == 0 {
 		b.currentTransactionLock.Unlock()
 		return

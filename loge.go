@@ -159,39 +159,45 @@ func (l *logger) write(be *BufferElement) {
 
 func (l *logger) writeLevel(level uint32, message string) {
 	if ((l.configuration.Mode & OutputFile) != 0) || ((l.configuration.Mode & OutputConsole) != 0) {
-		if (l.configuration.LogLevels & level) != 0 {
-			l.customTimestampLock.Lock()
-			defer l.customTimestampLock.Unlock()
-			t := time.Now()
-			dumpTimeToBuffer(&l.customTimestampBuffer, t)
-			be := NewBufferElement(t, l.writeTimestampBuffer, []byte(message))
-			switch level {
-			case LogLevelInfo:
-				be.Level = "info"
-			case LogLevelDebug:
-				be.Level = "debug"
-			}
-			l.write(be)
+		l.customTimestampLock.Lock()
+		defer l.customTimestampLock.Unlock()
+		t := time.Now()
+		dumpTimeToBuffer(&l.customTimestampBuffer, t)
+		be := NewBufferElement(t, l.writeTimestampBuffer, []byte(message))
+		switch level {
+		case LogLevelInfo:
+			be.Level = "info"
+		case LogLevelDebug:
+			be.Level = "debug"
 		}
+		l.write(be)
 	}
 }
 
 // Infof creates creates a new "info" log entry
 func Infof(format string, v ...interface{}) {
-	std.writeLevel(LogLevelInfo, fmt.Sprintf(format, v...))
+	if (std.configuration.LogLevels & LogLevelInfo) != 0 {
+		std.writeLevel(LogLevelInfo, fmt.Sprintf(format, v...))
+	}
 }
 
 // Infoln creates creates a new "info" log entry
 func Infoln(v ...interface{}) {
-	std.writeLevel(LogLevelInfo, fmt.Sprintln(v...))
+	if (std.configuration.LogLevels & LogLevelInfo) != 0 {
+		std.writeLevel(LogLevelInfo, fmt.Sprintln(v...))
+	}
 }
 
 // Debugf creates creates a new "debug" log entry
 func Debugf(format string, v ...interface{}) {
-	std.writeLevel(LogLevelDebug, fmt.Sprintf(format, v...))
+	if (std.configuration.LogLevels & LogLevelDebug) != 0 {
+		std.writeLevel(LogLevelDebug, fmt.Sprintf(format, v...))
+	}
 }
 
 // Debugln creates creates a new "debug" log entry
 func Debugln(v ...interface{}) {
-	std.writeLevel(LogLevelDebug, fmt.Sprintln(v...))
+	if (std.configuration.LogLevels & LogLevelDebug) != 0 {
+		std.writeLevel(LogLevelDebug, fmt.Sprintln(v...))
+	}
 }

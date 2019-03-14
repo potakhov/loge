@@ -47,7 +47,7 @@ OutputConsoleInJSONFormat|Switch console output to JSON serialized format
 
 ## Optional transports
 
-In order to create additional logging transports the library should be initialized with a `TransportCreator` - a function returning an array of external transports conforming the `Transport` interface.
+In order to create additional logging transports the library should be initialized with a `TransportCreator` - a function returning an array of external transports conforming to the `Transport` interface.
 
 ```go
 type TransportCreator func(TransactionList) []Transport

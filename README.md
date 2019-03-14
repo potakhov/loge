@@ -80,3 +80,22 @@ type TransactionList interface {
 `Get` returns the transaction contents if transaction is still available (not purged). `autofree` parameter signals the transaction list handler that the transport is not going to request the transaction contents in the future anymore and the operation is complete.
 
 `Free` purges the transaction when it's not needed by the transport anymore. Transactions are also automatically purged after configured period of time even if not accessed.
+
+## Transaction interface
+
+```go
+type Transaction struct {
+	ID         uint64
+	Items      []*BufferElement
+}
+
+type BufferElement struct {
+	Timestamp  time.Time
+	Message    string
+	Level      string
+}
+```
+
+Transaction interface describes a single logger transaction containing mutiple log records in `BufferElement` format. Each `BufferElement` carries a `Timestamp` in UTC format, a `Message` and an optional `Level` for `debug` or `info` log message types.
+
+Each `BufferElement` also provides an additional helper functions: `Marshal`, allowing to marshal the element into JSON format.

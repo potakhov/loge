@@ -23,9 +23,9 @@ const (
 const (
 	LogLevelInfo    uint32 = 1
 	LogLevelDebug   uint32 = 2
-	LogLevelTrace   uint32 = 3
-	LogLevelWarning uint32 = 4
-	LogLevelError   uint32 = 5
+	LogLevelTrace   uint32 = 4
+	LogLevelWarning uint32 = 8
+	LogLevelError   uint32 = 16
 )
 
 // TransportCreator is an interface to create new optional transports when the log is initialized

@@ -18,8 +18,15 @@ to the beginning of your `main()` function:
         })()
 ```
 
-To use the log simply use the default `log.Println()` and `log.Printf()` functions.  Additionally `loge` package adds two more
-output log levels `LogLevelInfo` and `LogLevelDebug` with corresponding `Infof()`/`Infoln()` and `Debugf()`/`Debugln()` functions.
+To use the log simply use the default `log.Println()` and `log.Printf()` functions or alternative versions from `loge` package.
+Additionally `loge` package adds two more output log levels `LogLevelInfo` and `LogLevelDebug` with corresponding
+`Infof()`/`Infoln()` and `Debugf()`/`Debugln()` functions.
+
+## Optional key-value parameters
+
+If required it is possible to attach an optional key-value parameter (parameters) to any given log entry using a helper function
+`loge.With(key, value).Printf()`.  Those calls can be stacked in order to add multiple parameters to the record as
+`loge.With().With().With().Infoln()`.
 
 ## Configuration
 
@@ -96,6 +103,6 @@ type BufferElement struct {
 }
 ```
 
-Transaction interface describes a single logger transaction containing mutiple log records in `BufferElement` format. Each `BufferElement` carries a `Timestamp` in UTC format, a `Message` and an optional `Level` for `debug` or `info` log message types.
+Transaction interface describes a single logger transaction containing multiple log records in `BufferElement` format. Each `BufferElement` carries a `Timestamp` in UTC format, a `Message` and an optional `Level` for `debug` or `info` log message types.
 
 Each `BufferElement` also provides an additional helper functions: `Marshal`, allowing to marshal the element into JSON format.

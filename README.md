@@ -51,6 +51,7 @@ OutputFile|Enable the file output
 OutputFileRotate|Add an automatic file rotation based on current date
 OutputIncludeLine|Include file and line into the output
 OutputConsoleInJSONFormat|Switch console output to JSON serialized format
+OutputConsoleOptionalData|Display optional With() fields to the console output if turned on.  By default optional fields are only serialized into JSON format
 
 ## Optional transports
 

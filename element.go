@@ -14,8 +14,7 @@ type BufferElement struct {
 	Level      string                     `json:"level,omitempty"`
 	Data       map[string]interface{}     `json:"data,omitempty"`
 
-	l              *logger
-	serializedData string
+	l *logger
 }
 
 func inPlaceBufferElement(l *logger) *BufferElement {
@@ -36,23 +35,20 @@ func (be *BufferElement) fill(t time.Time, buf []byte, msg []byte) {
 }
 
 func (be *BufferElement) serializeData() string {
-	if be.serializedData != "" {
-		return be.serializedData
-	}
-
+	var serializedData string
 	for key, arg := range be.Data {
-		if len(be.serializedData) > 0 {
-			be.serializedData += ", "
+		if len(serializedData) > 0 {
+			serializedData += ", "
 		}
 
-		be.serializedData += fmt.Sprintf("%s: %v", key, arg)
+		serializedData += fmt.Sprintf("%s: %v", key, arg)
 	}
 
-	if be.serializedData != "" {
-		be.serializedData = "<" + be.serializedData + "> "
+	if serializedData != "" {
+		serializedData = "<" + serializedData + "> "
 	}
 
-	return be.serializedData
+	return serializedData
 }
 
 // NewBufferElement creates a new log entry
@@ -69,11 +65,9 @@ func (be *BufferElement) Marshal() ([]byte, error) {
 
 // Size returns the record size in bytes
 func (be *BufferElement) Size() int {
-	if be.Data == nil {
-		return dateTimeStringLength + len(be.Message)
-	}
-
-	return dateTimeStringLength + len(be.Message) + len(be.serializeData())
+	// we do not count optional data fields in overall size
+	// for simplicity and speed
+	return dateTimeStringLength + len(be.Message)
 }
 
 // With extends the log entry with optional parameters

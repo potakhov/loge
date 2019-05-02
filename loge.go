@@ -16,6 +16,7 @@ const (
 	OutputFileRotate          uint32 = 4  // OutputFileRotate adds an automatic file rotation based on current date
 	OutputIncludeLine         uint32 = 8  // Include file and line into the output
 	OutputConsoleInJSONFormat uint32 = 16 // Switch console output to JSON serialized format
+	OutputConsoleOptionalData uint32 = 32 // Print optional data values to the console too
 )
 
 // Various selectable log levels
@@ -168,7 +169,7 @@ func (l *logger) write(be *BufferElement) {
 			}
 		} else {
 			l.configuration.ConsoleOutput.Write(be.Timestring[:])
-			if be.Data != nil {
+			if ((l.configuration.Mode & OutputConsoleOptionalData) != 0) && (be.Data != nil) {
 				l.configuration.ConsoleOutput.Write([]byte(be.serializeData()))
 			}
 			l.configuration.ConsoleOutput.Write([]byte(be.Message))

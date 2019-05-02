@@ -24,7 +24,8 @@ func inPlaceBufferElement(l *logger) *BufferElement {
 	}
 }
 
-func (be *BufferElement) fill(t time.Time, buf []byte, msg []byte) {
+func (be *BufferElement) fill(t time.Time, buf []byte, msg []byte, level uint32) {
+	be.Level = levelToString(level)
 	be.Timestamp = t.UTC()      // time in UTC for the buffer
 	copy(be.Timestring[:], buf) // timestamp in local machine time for file output
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
@@ -52,9 +53,9 @@ func (be *BufferElement) serializeData() string {
 }
 
 // NewBufferElement creates a new log entry
-func NewBufferElement(t time.Time, buf []byte, msg []byte) *BufferElement {
+func NewBufferElement(t time.Time, buf []byte, msg []byte, level uint32) *BufferElement {
 	b := &BufferElement{}
-	b.fill(t, buf, msg)
+	b.fill(t, buf, msg, level)
 	return b
 }
 
@@ -79,45 +80,48 @@ func (be *BufferElement) With(key string, value interface{}) *BufferElement {
 // Printf creates creates a new log entry
 func (be *BufferElement) Printf(format string, v ...interface{}) {
 	if be.l != nil {
-		be.l.submit(be, fmt.Sprintf(format, v...))
+		be.l.submit(be, fmt.Sprintf(format, v...), 0)
 	}
 }
 
 // Println creates creates a new log entry
 func (be *BufferElement) Println(v ...interface{}) {
 	if be.l != nil {
-		be.l.submit(be, fmt.Sprintln(v...))
+		be.l.submit(be, fmt.Sprintln(v...), 0)
 	}
 }
 
-// Infof creates creates a new "info" log entry
-func (be *BufferElement) Infof(format string, v ...interface{}) {
+// Info creates creates a new "info" log entry
+func (be *BufferElement) Info(format string, v ...interface{}) {
 	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelInfo) != 0) {
-		be.Level = "info"
-		be.l.submit(be, fmt.Sprintf(format, v...))
+		be.l.submit(be, fmt.Sprintf(format, v...), LogLevelInfo)
 	}
 }
 
-// Infoln creates creates a new "info" log entry
-func (be *BufferElement) Infoln(v ...interface{}) {
-	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelInfo) != 0) {
-		be.Level = "info"
-		be.l.submit(be, fmt.Sprintln(v...))
-	}
-}
-
-// Debugf creates creates a new "debug" log entry
-func (be *BufferElement) Debugf(format string, v ...interface{}) {
+// Debug creates creates a new "debug" log entry
+func (be *BufferElement) Debug(format string, v ...interface{}) {
 	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelDebug) != 0) {
-		be.Level = "debug"
-		be.l.submit(be, fmt.Sprintf(format, v...))
+		be.l.submit(be, fmt.Sprintf(format, v...), LogLevelDebug)
 	}
 }
 
-// Debugln creates creates a new "debug" log entry
-func (be *BufferElement) Debugln(v ...interface{}) {
-	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelDebug) != 0) {
-		be.Level = "debug"
-		be.l.submit(be, fmt.Sprintln(v...))
+// Trace creates creates a new "trace" log entry
+func (be *BufferElement) Trace(format string, v ...interface{}) {
+	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelTrace) != 0) {
+		be.l.submit(be, fmt.Sprintf(format, v...), LogLevelTrace)
+	}
+}
+
+// Warn creates creates a new "warning" log entry
+func (be *BufferElement) Warn(format string, v ...interface{}) {
+	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelWarning) != 0) {
+		be.l.submit(be, fmt.Sprintf(format, v...), LogLevelWarning)
+	}
+}
+
+// Error creates creates a new "error" log entry
+func (be *BufferElement) Error(format string, v ...interface{}) {
+	if (be.l != nil) && ((be.l.configuration.LogLevels & LogLevelError) != 0) {
+		be.l.submit(be, fmt.Sprintf(format, v...), LogLevelError)
 	}
 }

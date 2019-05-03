@@ -67,6 +67,7 @@ type logger struct {
 
 	customTimestampBuffer []byte
 	customTimestampLock   sync.Mutex
+	defaultData           map[string]interface{}
 }
 
 // Init initializes the library and returns the shutdown handler to defer
@@ -78,6 +79,7 @@ func Init(c Configuration) func() {
 func newLogger(c Configuration) *logger {
 	l := &logger{
 		configuration: c,
+		defaultData:  make(map[string]interface{}),
 	}
 
 	flag := 0
@@ -276,4 +278,9 @@ func (l *logger) submit(be *BufferElement, message string, level uint32) {
 		be.fill(t, l.customTimestampBuffer, []byte(message), level)
 		l.write(be)
 	}
+}
+
+// WithDefault sets default parameters that will be included with each entry. Such as ip, processName etc.
+func (l *logger) WithDefault(key string, value interface{})  {
+	l.defaultData[key] = value
 }

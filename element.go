@@ -19,10 +19,16 @@ type BufferElement struct {
 }
 
 func inPlaceBufferElement(l *logger) *BufferElement {
-	return &BufferElement{
+	be := &BufferElement{
 		l:    l,
 		Data: make(map[string]interface{}),
 	}
+
+	for k,v := range l.defaultData {
+		be.Data[k] = v
+	}
+
+	return be
 }
 
 func (be *BufferElement) fill(t time.Time, buf []byte, msg []byte, level uint32) {

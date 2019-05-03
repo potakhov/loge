@@ -8,11 +8,12 @@ import (
 
 // BufferElement is a single buffered log entry
 type BufferElement struct {
-	Timestamp  time.Time                  `json:"time"`
-	Timestring [dateTimeStringLength]byte `json:"-"`
-	Message    string                     `json:"msg"`
-	Level      string                     `json:"level,omitempty"`
-	Data       map[string]interface{}     `json:"data,omitempty"`
+	Timestamp   time.Time                  `json:"time"`
+	Timestring  [dateTimeStringLength]byte `json:"-"`
+	Message     string                     `json:"msg"`
+	Level       uint32                     `json:"-"`
+	Levelstring string                     `json:"level,omitempty"`
+	Data        map[string]interface{}     `json:"data,omitempty"`
 
 	l *logger
 }
@@ -25,7 +26,8 @@ func inPlaceBufferElement(l *logger) *BufferElement {
 }
 
 func (be *BufferElement) fill(t time.Time, buf []byte, msg []byte, level uint32) {
-	be.Level = levelToString(level)
+	be.Levelstring = levelToString(level)
+	be.Level = level
 	be.Timestamp = t.UTC()      // time in UTC for the buffer
 	copy(be.Timestring[:], buf) // timestamp in local machine time for file output
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {

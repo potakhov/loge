@@ -106,3 +106,17 @@ type BufferElement struct {
 Transaction interface describes a single logger transaction containing multiple log records in `BufferElement` format. Each `BufferElement` carries a `Timestamp` in UTC format, a `Message` and an optional `Level` for `debug` or `info` log message types.
 
 Each `BufferElement` also provides an additional helper functions: `Marshal`, allowing to marshal the element into JSON format.
+
+## Transaction interface wrapper
+
+```go
+type TransactionHandler interface {
+	WriteOutTransaction(tr *Transaction)
+	FlushTransactions()
+}
+```
+
+Transaction interface wrapper provides a way to create a simplified transaction handler implementing the signalling and asynchronous
+transaction processing.  `TransactionHandler` interface provides two methods: `WriteOutTransaction` is being called for every
+new log entry and `FlushTransactions` is being called periodically to flush a batch of records together.
+Example of using the wrapper could be found [in example folder](example/main.go).

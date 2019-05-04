@@ -24,10 +24,11 @@ func inPlaceBufferElement(l *logger) *BufferElement {
 		Data: make(map[string]interface{}),
 	}
 
-	for k,v := range l.defaultData {
-		be.Data[k] = v
+	if len(l.configuration.defaultData) >0 {
+		for k, v := range l.configuration.defaultData {
+			be.Data[k] = v
+		}
 	}
-
 	return be
 }
 

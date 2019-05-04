@@ -24,25 +24,36 @@ func (t *customTransport) FlushTransactions() {
 }
 
 func main() {
+
     c := &customTransport{}
 
-    loge.Init(
-        loge.Configuration{
-            Mode:          loge.OutputConsole | loge.OutputFile | loge.OutputFileRotate,
-            Path:          ".",
-            ConsoleOutput: os.Stdout,
-            LogLevels:     loge.LogLevelDebug | loge.LogLevelInfo,
-            Transports: func(list loge.TransactionList) []loge.Transport {
-                transport := loge.WrapTransport(list, c)
-                outputs := make([]loge.Transport, 0)
-                outputs = append(outputs, transport)
-                return outputs
-            },
-        })
+    logeShutdown := loge.Init(
+        loge.WithDefault("ip", "127.0.0.1"),
+        loge.WithDefault("process", "calc.exe"),
+        loge.Path("."),
+        loge.EnableOutputConsole(),
+        loge.EnableOutputFile(),
+        loge.EnableFileRotate(),
+        loge.ConsoleOutput(os.Stdout),
+        loge.EnableDebug(),
+        loge.EnableError(),
+        loge.EnableInfo(),
+        loge.EnableWarning(),
+        loge.Transports(func(list loge.TransactionList) []loge.Transport {
+            transport := loge.WrapTransport(list, c)
+            return []loge.Transport{transport}
+        }),
+    )
+
+    defer logeShutdown()
 
     loge.Printf("Hello World\n")
-    loge.Printf("Hello World\n")
-    loge.With("uid", 32).With("nickname", "pap").Info("test")
+    loge.Warn("Hello World Warn Level\n")
+    loge.Info("Hello World Info Level\n")
+    loge.Debug("Hello World Debug Level\n")
+    loge.Trace("Hello World Trace Level\n")
+    loge.Error("Hello World Error Level\n")
+    loge.With("uid", 32).With("nickname", "pap").Info("Info Message Associated with user")
 
     OsSignal := make(chan os.Signal, 1)
     LoopForever(OsSignal)

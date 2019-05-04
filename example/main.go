@@ -28,15 +28,27 @@ func (t *customTransport) FlushTransactions() {
 }
 
 func main() {
-	defer loge.Init(
-		loge.Configuration{
-			Mode:          loge.OutputConsole | loge.OutputConsoleOptionalData,
-			ConsoleOutput: os.Stdout,
-			LogLevels:     loge.LogLevelDebug | loge.LogLevelInfo,
-			Transports: func(list loge.TransactionList) []loge.Transport {
-				return []loge.Transport{loge.WrapTransport(list, &customTransport{})}
-			},
-		})()
+	c := &customTransport{}
+
+	logeShutdown := loge.Init(
+			loge.WithDefault("ip", "127.0.0.1"),
+			loge.WithDefault("process", "calc.exe"),
+			loge.Path("."),
+			loge.EnableOutputConsole(),
+			loge.EnableOutputFile(),
+			loge.EnableFileRotate(),
+			loge.ConsoleOutput(os.Stdout),
+			loge.EnableDebug(),
+			loge.EnableError(),
+			loge.EnableInfo(),
+			loge.EnableWarning(),
+			loge.Transports(func(list loge.TransactionList) []loge.Transport {
+				transport := loge.WrapTransport(list, c)
+				return []loge.Transport{transport}
+			}),
+			)
+
+	defer logeShutdown()
 
 	log.Printf("Plain record via standard logger")
 	loge.Printf("Plain record via extended logger")

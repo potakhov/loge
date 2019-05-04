@@ -2,9 +2,8 @@ package main
 
 import (
     "fmt"
+    "log"
     "os"
-    "os/signal"
-    "syscall"
 
     "github.com/potakhov/loge"
 )
@@ -47,23 +46,16 @@ func main() {
 
     defer logeShutdown()
 
-    loge.Printf("Hello World\n")
-    loge.Warn("Hello World Warn Level\n")
-    loge.Info("Hello World Info Level\n")
-    loge.Debug("Hello World Debug Level\n")
-    loge.Trace("Hello World Trace Level\n")
-    loge.Error("Hello World Error Level\n")
-    loge.With("uid", 32).With("nickname", "pap").Info("Info Message Associated with user")
+    log.Printf("Plain record via standard logger")
+    loge.Printf("Plain record via extended logger")
+    loge.With("uid", 42).Info("Info message with additional data")
+    loge.With("uid", 33).With("token", "cafebabe").Debug("Debug message with additional data")
+    loge.Trace("Trace message")
 
-    OsSignal := make(chan os.Signal, 1)
-    LoopForever(OsSignal)
-}
+    loge.Trace("Trace Level, not enabled in Init()\n")
+    loge.Debug("Debug Level\n")
+    loge.Info("Info Level\n")
+    loge.Warn("Warn Level \n")
+    loge.Error("Error Level\n")
 
-func LoopForever(OsSignal chan os.Signal) {
-    loge.Info("Entering infinite loop\n")
-
-    signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
-    <-OsSignal
-
-    loge.Info("Exiting infinite loop received OsSignal\n")
 }

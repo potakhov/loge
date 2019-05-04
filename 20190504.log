@@ -1,0 +1,8 @@
+2019/05/04 12:35:37.829526 Plain record via standard logger
+2019/05/04 12:35:37.829750 Plain record via extended logger
+2019/05/04 12:35:37.829766 Info message with additional data
+2019/05/04 12:35:37.829778 Debug message with additional data
+2019/05/04 12:35:37.829787 Debug Level
+2019/05/04 12:35:37.829796 Info Level
+2019/05/04 12:35:37.829804 Warn Level 
+2019/05/04 12:35:37.829812 Error Level

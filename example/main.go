@@ -31,22 +31,19 @@ func main() {
 	c := &customTransport{}
 
 	logeShutdown := loge.Init(
-			loge.WithDefault("ip", "127.0.0.1"),
-			loge.WithDefault("process", "calc.exe"),
-			loge.Path("."),
-			loge.EnableOutputConsole(),
-			loge.EnableOutputFile(),
-			loge.EnableFileRotate(),
-			loge.ConsoleOutput(os.Stdout),
-			loge.EnableDebug(),
-			loge.EnableError(),
-			loge.EnableInfo(),
-			loge.EnableWarning(),
-			loge.Transports(func(list loge.TransactionList) []loge.Transport {
-				transport := loge.WrapTransport(list, c)
-				return []loge.Transport{transport}
-			}),
-			)
+		loge.WithDefault("ip", "127.0.0.1"),
+		loge.WithDefault("process", "calc.exe"),
+		loge.Path("."),
+		loge.EnableOutputConsole(),
+		loge.EnableOutputFile(),
+		loge.EnableFileRotate(),
+		loge.ConsoleOutput(os.Stdout),
+		loge.LogLevels(loge.LogLevelDebug|loge.LogLevelInfo),
+		loge.Transports(func(list loge.TransactionList) []loge.Transport {
+			transport := loge.WrapTransport(list, c)
+			return []loge.Transport{transport}
+		}),
+	)
 
 	defer logeShutdown()
 

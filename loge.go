@@ -9,16 +9,6 @@ import (
 	"time"
 )
 
-// Various log output modes
-const (
-	OutputConsole             uint32 = 1  // OutputConsole outputs to the stderr
-	OutputFile                uint32 = 2  // OutputFile adds a file output
-	OutputFileRotate          uint32 = 4  // OutputFileRotate adds an automatic file rotation based on current date
-	OutputIncludeLine         uint32 = 8  // Include file and line into the output
-	OutputConsoleInJSONFormat uint32 = 16 // Switch console output to JSON serialized format
-	OutputConsoleOptionalData uint32 = 32 // Print optional data values to the console too
-)
-
 // Various selectable log levels
 const (
 	LogLevelInfo    uint32 = 1
@@ -45,14 +35,21 @@ type configuration struct {
 	Transports               func(list TransactionList) []Transport
 }
 
-
-
 var std *logger
+
+const (
+	outputConsole             uint32 = 1
+	outputFile                uint32 = 2
+	outputFileRotate          uint32 = 4
+	outputIncludeLine         uint32 = 8
+	outputConsoleInJSONFormat uint32 = 16
+	outputConsoleOptionalData uint32 = 32
+)
 
 func init() {
 	std = newLogger(
 		configuration{
-			Mode:          OutputConsole,
+			Mode:          outputConsole,
 			ConsoleOutput: os.Stderr,
 			defaultData:   make(map[string]interface{}),
 		})
@@ -93,18 +90,10 @@ func Path(p string) func(*configuration) *configuration {
 	}
 }
 
-// // Mode returns a function to set the Mode of config. (Deprecated in favour of calls like loge.EnableOutputConsole etc.
-// func Mode(v uint32) func(*configuration) *configuration {
-//     return func(l *configuration) *configuration {
-//         l.Mode = v
-//         return l
-//     }
-// }
-
 // EnableOutputConsole returns a function to enable the output console.
 func EnableOutputConsole() func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= OutputConsole
+		l.Mode |= outputConsole
 		return l
 	}
 }
@@ -112,7 +101,7 @@ func EnableOutputConsole() func(*configuration) *configuration {
 // EnableOutputFile returns a function to enable the output file.
 func EnableOutputFile() func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= OutputFile
+		l.Mode |= outputFile
 		return l
 	}
 }
@@ -120,7 +109,7 @@ func EnableOutputFile() func(*configuration) *configuration {
 // EnableFileRotate returns a function to enable the output file rotation.
 func EnableFileRotate() func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= OutputFileRotate
+		l.Mode |= outputFileRotate
 		return l
 	}
 }
@@ -128,7 +117,7 @@ func EnableFileRotate() func(*configuration) *configuration {
 // EnableOutputIncludeLine returns a function to enable the Include file and line into the output.
 func EnableOutputIncludeLine() func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= OutputIncludeLine
+		l.Mode |= outputIncludeLine
 		return l
 	}
 }
@@ -136,7 +125,7 @@ func EnableOutputIncludeLine() func(*configuration) *configuration {
 // EnableOutputConsoleInJSONFormat returns a function to enable the console output to JSON serialized format.
 func EnableOutputConsoleInJSONFormat() func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= OutputConsoleInJSONFormat
+		l.Mode |= outputConsoleInJSONFormat
 		return l
 	}
 }
@@ -144,11 +133,10 @@ func EnableOutputConsoleInJSONFormat() func(*configuration) *configuration {
 // EnableOutputConsoleOptionalData returns a function to enable optional With() fields to the console output if turned on.  By default optional fields are only serialized into JSON format.
 func EnableOutputConsoleOptionalData() func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= OutputConsoleOptionalData
+		l.Mode |= outputConsoleOptionalData
 		return l
 	}
 }
-
 
 // Filename returns a function to set the log file name (ignored if rotation is enabled).
 func Filename(p string) func(*configuration) *configuration {
@@ -190,14 +178,13 @@ func BacklogExpirationTimeout(p time.Duration) func(*configuration) *configurati
 	}
 }
 
-// // LogLevels returns a function to set the selectable log levels. (Deprecated in favour of calls like loge.EnableDebug, loge.EnableTrace
-// func LogLevels(p uint32) func(*configuration) *configuration {
-//     return func(l *configuration) *configuration {
-//         l.LogLevels = p
-//         return l
-//     }
-// }
-
+// LogLevels returns a function to set the selectable log levels.
+func LogLevels(p uint32) func(*configuration) *configuration {
+	return func(l *configuration) *configuration {
+		l.LogLevels = p
+		return l
+	}
+}
 
 // EnableDebug returns a function to enable the logging of Debug level messages.
 func EnableDebug() func(*configuration) *configuration {
@@ -239,7 +226,6 @@ func EnableError() func(*configuration) *configuration {
 	}
 }
 
-
 // Transports returns a function to set the Optional transports creator.
 func Transports(s func(list TransactionList) []Transport) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
@@ -247,7 +233,6 @@ func Transports(s func(list TransactionList) []Transport) func(*configuration) *
 		return l
 	}
 }
-
 
 // WithDefault returns a function to sets default parameters that will be included with each entry. Such as ip, processName etc.
 func WithDefault(key string, value interface{}) func(*configuration) *configuration {
@@ -263,11 +248,11 @@ func newLogger(c configuration) *logger {
 	}
 
 	flag := 0
-	if (c.Mode & OutputIncludeLine) != 0 {
+	if (c.Mode & outputIncludeLine) != 0 {
 		flag |= log.Lshortfile
 	}
 
-	if (c.Mode & OutputFile) != 0 {
+	if (c.Mode & outputFile) != 0 {
 		validPath := false
 
 		if fileInfo, err := os.Stat(c.Path); !os.IsNotExist(err) {
@@ -277,7 +262,7 @@ func newLogger(c configuration) *logger {
 		}
 
 		if !validPath {
-			l.configuration.Mode = l.configuration.Mode & (^OutputFile)
+			l.configuration.Mode = l.configuration.Mode & (^outputFile)
 			os.Stderr.Write([]byte("Log path is invalid.  Log file output is disabled.\n"))
 		}
 	}
@@ -298,14 +283,14 @@ func newLogger(c configuration) *logger {
 		l.configuration.BacklogExpirationTimeout = defaultBacklogTimeout
 	}
 
-	if ((l.configuration.Mode & OutputFile) != 0) || (l.configuration.Transports != nil) {
+	if ((l.configuration.Mode & outputFile) != 0) || (l.configuration.Transports != nil) {
 		buffer := newBuffer(l)
 
 		var outputs []Transport
 
-		if (l.configuration.Mode & OutputFile) != 0 {
+		if (l.configuration.Mode & outputFile) != 0 {
 			outputs = make([]Transport, 1)
-			outputs[0] = newFileTransport(buffer, c.Path, c.Filename, (c.Mode & OutputFileRotate) != 0, (c.Mode & OutputConsoleInJSONFormat) != 0)
+			outputs[0] = newFileTransport(buffer, c.Path, c.Filename, (c.Mode&outputFileRotate) != 0, (c.Mode&outputConsoleInJSONFormat) != 0)
 		} else {
 			outputs = make([]Transport, 0)
 		}
@@ -333,7 +318,7 @@ func (l *logger) shutdown() {
 }
 
 func (l *logger) Write(d []byte) (int, error) {
-	if (l.buffer != nil) || ((l.configuration.Mode & OutputConsole) != 0) {
+	if (l.buffer != nil) || ((l.configuration.Mode & outputConsole) != 0) {
 		t := time.Now()
 		dumpTimeToBuffer(&l.writeTimestampBuffer, t) // don't have to lock this buf here because Write events are serialized
 		l.write(
@@ -362,8 +347,8 @@ func levelToString(level uint32) string {
 }
 
 func (l *logger) write(be *BufferElement) {
-	if (l.configuration.Mode & OutputConsole) != 0 {
-		if (l.configuration.Mode & OutputConsoleInJSONFormat) != 0 {
+	if (l.configuration.Mode & outputConsole) != 0 {
+		if (l.configuration.Mode & outputConsoleInJSONFormat) != 0 {
 			json, err := be.Marshal()
 			if err == nil {
 				l.configuration.ConsoleOutput.Write(json)
@@ -371,7 +356,7 @@ func (l *logger) write(be *BufferElement) {
 			}
 		} else {
 			l.configuration.ConsoleOutput.Write(be.Timestring[:])
-			if ((l.configuration.Mode & OutputConsoleOptionalData) != 0) && (be.Data != nil) {
+			if ((l.configuration.Mode & outputConsoleOptionalData) != 0) && (be.Data != nil) {
 				l.configuration.ConsoleOutput.Write([]byte(be.serializeData()))
 			}
 			l.configuration.ConsoleOutput.Write([]byte(be.Message))
@@ -387,7 +372,7 @@ func (l *logger) write(be *BufferElement) {
 }
 
 func (l *logger) writeLevel(level uint32, message string) {
-	if (l.buffer != nil) || ((l.configuration.Mode & OutputConsole) != 0) {
+	if (l.buffer != nil) || ((l.configuration.Mode & outputConsole) != 0) {
 		l.customTimestampLock.Lock()
 		defer l.customTimestampLock.Unlock()
 		t := time.Now()
@@ -450,7 +435,7 @@ func With(key string, value interface{}) *BufferElement {
 }
 
 func (l *logger) submit(be *BufferElement, message string, level uint32) {
-	if (l.buffer != nil) || ((l.configuration.Mode & OutputConsole) != 0) {
+	if (l.buffer != nil) || ((l.configuration.Mode & outputConsole) != 0) {
 		l.customTimestampLock.Lock()
 		defer l.customTimestampLock.Unlock()
 		t := time.Now()

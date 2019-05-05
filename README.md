@@ -7,10 +7,10 @@ transport is transactional and abstracted to leave the possibility of adding opt
 ## Usage
 
 `loge.Init()` function returns callable object that finalizes the log output. In order to use it simply add following
-to the beginning of your `main()`. The defer will invoke a finalizer shutdown function returned by Init. This will ensure \
-all pending messages are flushed out and handled.   
+to the beginning of your `main()`. The defer will invoke a finalizer shutdown function returned by Init. This will ensure
+all pending messages are flushed out and handled.
 
-function: 
+Function:
 
 ```go
     defer loge.Init(
@@ -29,9 +29,9 @@ function:
 
 ```
 
-
 To use the log simply use the default `log.Println()` and `log.Printf()` functions or alternative versions from `loge` package.
-Additionally `loge` package adds five more output log levels with corresponding`Info()`, `Debug()`, `Trace()`, `Warn()`, and `Error()` functions.
+Additionally `loge` package adds five more output log levels with corresponding`Info()`, `Debug()`, `Trace()`, `Warn()`, and
+`Error()` functions.
 
 ## Optional key-value parameters
 
@@ -43,41 +43,45 @@ If required it is possible to attach an optional key-value parameter (parameters
 loge.With("uid", 32).With("nickname", "pap").Info("Info Message Associated with user")
 ```
 
-
 ## Configuration
-Configuration is handled by passing an arbitary config functions to the Init function. 
 
-Function|Param|Description
----------|----|-----------
-loge.Mode|uint32|Work mode options (Deprecated in favour of calls like loge.EnableOutputConsole etc)
-loge.EnableOutputConsole| |EnableOutputConsole returns a function to enable the output console.
-loge.EnableOutputFile| |EnableOutputFile returns a function to enable the output file.
-loge.EnableFileRotate| |EnableFileRotate returns a function to enable the output file rotation.
-loge.Path|string|Output path for file output (ignored if file output is disabled)
-loge.Filename|string|Log file name (ignored if rotation is enabled)
-loge.TransactionSize|int|Transaction size limit in bytes (default `10KB`)
-loge.TransactionTimeout|time.Duration|Transaction flush timeout (default `3 seconds`)
-loge.ConsoleOutput|io.Writer|Output writer for console output (default os.Stderr, ignored if console output is disabled)
-loge.BacklogExpirationTimeout|time.Duration|Transaction backlog expiration timeout (default is `15 minutes`)
-loge.LogLevels|uint32|Enabled log levels (defaults to `0` meaning that only default `log.Print()` messages go to the output)
-loge.EnableDebug| |EnableDebug returns a function to enable the logging of Debug level messages.
-loge.EnableInfo| |EnableInfo returns a function to enable the logging of Info level messages.
-loge.EnableTrace| |EnableTrace returns a function to enable the logging of Trace level messages.
-loge.EnableWarning| |EnableWarning returns a function to enable the logging of Warn level messages.
-loge.EnableError| |EnableError returns a function to enable the logging of Error level messages.
-loge.Transports|TransportCreator|Optional transports creator
+Configuration is handled by passing an arbitrary config functions to the Init function.
+
+Function|Input|Description
+--------|-----|-----------
+loge.EnableOutputConsole||Enable the output console.
+loge.EnableOutputFile||Enable the output file.
+loge.EnableFileRotate||Enable the output file rotation.
+loge.Path|string|Output path for file output (ignored if file output is disabled).
+loge.Filename|string|Log file name (ignored if rotation is enabled).
+loge.TransactionSize|int|Transaction size limit in bytes (default `10KB`).
+loge.TransactionTimeout|time.Duration|Transaction flush timeout (default `3 seconds`).
+loge.ConsoleOutput|io.Writer|Output writer for console output (default os.Stderr, ignored if console output is disabled).
+loge.BacklogExpirationTimeout|time.Duration|Transaction backlog expiration timeout (default is `15 minutes`).
+loge.Transports|TransportCreator|Optional transports creator.
 loge.WithDefault|key string, value interface{}|WithDefault returns a function to sets default parameters that will be included with each entry. Such as ip, processName etc.
+loge.LogLevels|uint32|Set the log level as a bitmask value.
+
+## Optional log levels
+
+Level|Description
+-----|-----------
+loge.EnableDebug|Enable the logging of LogLevelDebug level messages.
+loge.EnableInfo|Enable the logging of LogLevelInfo level messages.
+loge.EnableTrace|Enable the logging of LogLevelTrace level messages.
+loge.EnableWarning|Enable the logging of LogLevelWarning level messages.
+loge.EnableError|Enable the logging of LogLevelError level messages.
 
 ## Work mode options
 
 Mode|Description
 ----|-----------
-loge.EnableOutputConsole|EnableOutputConsole returns a function to enable the output console.
-loge.EnableOutputFile|EnableOutputFile returns a function to enable the output file.
-loge.EnableFileRotate|EnableFileRotate returns a function to enable the output file rotation.
-loge.EnableOutputIncludeLine|Include file and line into the output
-loge.EnableOutputConsoleInJSONFormat|Switch console output to JSON serialized format
-loge.EnableOutputConsoleOptionalData|Display optional With() fields to the console output if turned on.  By default optional fields are only serialized into JSON format
+loge.EnableOutputConsole|Enable the output console.
+loge.EnableOutputFile|Enable the output file.
+loge.EnableFileRotate|Enable the output file rotation.
+loge.EnableOutputIncludeLine|Include file and line into the output.
+loge.EnableOutputConsoleInJSONFormat|Switch console output to JSON serialized format.
+loge.EnableOutputConsoleOptionalData|Display optional With() fields to the console output if turned on.  By default optional fields are only serialized into JSON format.
 
 ## Optional transports
 

@@ -24,18 +24,19 @@ func inPlaceBufferElement(l *logger) *BufferElement {
 		Data: make(map[string]interface{}),
 	}
 
-	if len(l.configuration.defaultData) >0 {
+	if len(l.configuration.defaultData) > 0 {
 		for k, v := range l.configuration.defaultData {
 			be.Data[k] = v
 		}
 	}
+
 	return be
 }
 
 func (be *BufferElement) fill(t time.Time, buf []byte, msg []byte, level uint32) {
 	be.Levelstring = levelToString(level)
 	be.Level = level
-	be.Timestamp = t.UTC()      // time in UTC for the buffer
+	be.Timestamp = t.UTC()      // time is in UTC for the buffer
 	copy(be.Timestring[:], buf) // timestamp in local machine time for file output
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		be.Message = string(msg[:len(msg)-1]) // it is required because log.Output always adds a new line

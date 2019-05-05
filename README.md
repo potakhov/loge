@@ -10,22 +10,18 @@ transport is transactional and abstracted to leave the possibility of adding opt
 to the beginning of your `main()`. The defer will invoke a finalizer shutdown function returned by Init. This will ensure
 all pending messages are flushed out and handled.
 
-Function:
+Usage:
 
 ```go
     defer loge.Init(
-                  loge.WithDefault("ip", "127.0.0.1"),
-                  loge.WithDefault("process", "calc.exe"),
-                  loge.Path("."),
-                  loge.EnableOutputConsole(),
-                  loge.EnableOutputFile(),
-                  loge.EnableFileRotate(),
-                  loge.ConsoleOutput(os.Stdout),
-                  loge.EnableDebug(),
-                  loge.EnableError(),
-                  loge.EnableInfo(),
-                  loge.EnableWarning(),
-              )
+        loge.WithDefault("ip", "127.0.0.1"),
+        loge.EnableOutputConsole(),
+        loge.ConsoleOutput(os.Stdout),
+        loge.EnableOutputFile(),
+        loge.EnableFileRotate(),
+        loge.Path("."),
+        loge.LogLevels(loge.LogLevelDebug|loge.LogLevelInfo),
+    )()
 
 ```
 

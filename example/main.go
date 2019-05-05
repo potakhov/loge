@@ -30,7 +30,7 @@ func (t *customTransport) FlushTransactions() {
 func main() {
 	c := &customTransport{}
 
-	logeShutdown := loge.Init(
+	defer loge.Init(
 		loge.WithDefault("ip", "127.0.0.1"),
 		loge.WithDefault("process", "calc.exe"),
 		loge.Path("."),
@@ -43,9 +43,7 @@ func main() {
 			transport := loge.WrapTransport(list, c)
 			return []loge.Transport{transport}
 		}),
-	)
-
-	defer logeShutdown()
+	)()
 
 	log.Printf("Plain record via standard logger")
 	loge.Printf("Plain record via extended logger")

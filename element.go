@@ -83,7 +83,9 @@ func (be *BufferElement) Size() int {
 
 // With extends the log entry with optional parameters
 func (be *BufferElement) With(key string, value interface{}) *BufferElement {
-	be.Data[key] = value
+	if key != "" && value != nil {
+		be.Data[key] = value
+	}
 	return be
 }
 

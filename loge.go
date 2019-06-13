@@ -430,7 +430,9 @@ func Error(format string, v ...interface{}) {
 // With creates a new log entry with optional parameters
 func With(key string, value interface{}) *BufferElement {
 	be := inPlaceBufferElement(std)
-	be.Data[key] = value
+	if key != "" && value != nil {
+		be.Data[key] = value
+	}
 	return be
 }
 

@@ -15,10 +15,10 @@ Usage:
 ```go
     defer loge.Init(
         loge.WithDefault("ip", "127.0.0.1"),
-        loge.EnableOutputConsole(),
+        loge.EnableOutputConsole(true),
         loge.ConsoleOutput(os.Stdout),
-        loge.EnableOutputFile(),
-        loge.EnableFileRotate(),
+        loge.EnableOutputFile(true),
+        loge.EnableFileRotate(true),
         loge.Path("."),
         loge.LogLevels(loge.LogLevelDebug|loge.LogLevelInfo),
     )()
@@ -45,9 +45,9 @@ Configuration is handled by passing an arbitrary config functions to the Init fu
 
 Function|Input|Description
 --------|-----|-----------
-loge.EnableOutputConsole||Enable the output console.
-loge.EnableOutputFile||Enable the output file.
-loge.EnableFileRotate||Enable the output file rotation.
+loge.EnableOutputConsole|bool|Enable the output console.
+loge.EnableOutputFile|bool|Enable the output file.
+loge.EnableFileRotate|bool|Enable the output file rotation.
 loge.Path|string|Output path for file output (ignored if file output is disabled).
 loge.Filename|string|Log file name (ignored if rotation is enabled).
 loge.TransactionSize|int|Transaction size limit in bytes (default `10KB`).

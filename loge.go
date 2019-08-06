@@ -91,49 +91,73 @@ func Path(p string) func(*configuration) *configuration {
 }
 
 // EnableOutputConsole returns a function to enable the output console.
-func EnableOutputConsole() func(*configuration) *configuration {
+func EnableOutputConsole(enable bool) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= outputConsole
+		if enable {
+			l.Mode |= outputConsole
+		} else {
+			l.Mode &^= outputConsole
+		}
 		return l
 	}
 }
 
 // EnableOutputFile returns a function to enable the output file.
-func EnableOutputFile() func(*configuration) *configuration {
+func EnableOutputFile(enable bool) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= outputFile
+		if enable {
+			l.Mode |= outputFile
+		} else {
+			l.Mode &^= outputFile
+		}
 		return l
 	}
 }
 
 // EnableFileRotate returns a function to enable the output file rotation.
-func EnableFileRotate() func(*configuration) *configuration {
+func EnableFileRotate(enable bool) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= outputFileRotate
+		if enable {
+			l.Mode |= outputFileRotate
+		} else {
+			l.Mode &^= outputFileRotate
+		}
 		return l
 	}
 }
 
 // EnableOutputIncludeLine returns a function to enable the Include file and line into the output.
-func EnableOutputIncludeLine() func(*configuration) *configuration {
+func EnableOutputIncludeLine(enable bool) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= outputIncludeLine
+		if enable {
+			l.Mode |= outputIncludeLine
+		} else {
+			l.Mode &^= outputIncludeLine
+		}
 		return l
 	}
 }
 
 // EnableOutputConsoleInJSONFormat returns a function to enable the console output to JSON serialized format.
-func EnableOutputConsoleInJSONFormat() func(*configuration) *configuration {
+func EnableOutputConsoleInJSONFormat(enable bool) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= outputConsoleInJSONFormat
+		if enable {
+			l.Mode |= outputConsoleInJSONFormat
+		} else {
+			l.Mode &^= outputConsoleInJSONFormat
+		}
 		return l
 	}
 }
 
 // EnableOutputConsoleOptionalData returns a function to enable optional With() fields to the console output if turned on.  By default optional fields are only serialized into JSON format.
-func EnableOutputConsoleOptionalData() func(*configuration) *configuration {
+func EnableOutputConsoleOptionalData(enable bool) func(*configuration) *configuration {
 	return func(l *configuration) *configuration {
-		l.Mode |= outputConsoleOptionalData
+		if enable {
+			l.Mode |= outputConsoleOptionalData
+		} else {
+			l.Mode &^= outputConsoleOptionalData
+		}
 		return l
 	}
 }
